@@ -20,7 +20,7 @@ RUN pnpm run build
 EXPOSE 3000
 
 ### DATABASE SETUP
-ARG PB_VERSION=0.18.3
+ARG PB_VERSION=0.22.8
 RUN apk add --no-cache ca-certificates
 
 ADD https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSION}/pocketbase_${PB_VERSION}_linux_amd64.zip /tmp/pb.zip

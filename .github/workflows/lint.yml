@@ -1,0 +1,29 @@
+name: Lint the code
+
+on: [push]
+
+jobs:
+  lint:
+    name: Lint the code and check formatting
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      # - name: Build the Docker image
+      #   uses: actions/checkout@v3
+      #   run: docker build . --file Dockerfile --tag hermes-minecraft-server-manager:$(date +%s)
+      - name: Check out the repo
+        uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install pnpm -g && pnpm install --frozen-lockfile
+
+      - name: Svelte Check
+        run: pnpm run check
+
+      - name: ESLint Check
+        run: pnpm run lint

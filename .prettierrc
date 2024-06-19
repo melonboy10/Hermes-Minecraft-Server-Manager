@@ -1,12 +1,11 @@
 {
-	"useTabs": false,
-	"tabWidth": 2,
-	"singleQuote": true,
-	"trailingComma": "none",
-	"bracketSameLine": true,
-	"printWidth": 1000,
-	"plugins": ["prettier-plugin-svelte", "prettier-plugin-tailwindcss"],
-	"pluginSearchDirs": ["."],
-	"overrides": [{ "files": "*.svelte", "options": { "parser": "svelte" } }],
-	"tailwindConfig": "./tailwind.config.js"
+  "useTabs": false,
+  "tabWidth": 2,
+  "singleQuote": true,
+  "trailingComma": "none",
+  "bracketSameLine": true,
+  "printWidth": 1000,
+  "plugins": ["prettier-plugin-svelte", "prettier-plugin-tailwindcss"],
+  "overrides": [{ "files": "*.svelte", "options": { "parser": "svelte" } }],
+  "tailwindConfig": "./tailwind.config.js"
 }

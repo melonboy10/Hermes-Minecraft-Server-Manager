@@ -1,13 +1,17 @@
 name: Docker Image CI
 
 on:
-  push:
-    branches: ['main']
   pull_request:
-    branches: ['main']
+    types:
+      - closed
+
+env:
+  TEST_TAG: melonboy10/hermes-minecraft-server-manager:test
+  LATEST_TAG: melonboy10/hermes-minecraft-server-manager:latest
 
 jobs:
   build:
+    if: github.event.pull_request.merged == true
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
 
@@ -30,5 +34,5 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: melonboy10/hermes-minecraft-server-manager:latest
-          labels: melonboy10/hermes-minecraft-server-manager:latest
+          tags: ${{ env.LATEST_TAG }}
+          labels: ${{ env.LATEST_TAG }}

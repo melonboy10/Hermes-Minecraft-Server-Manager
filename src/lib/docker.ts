@@ -1,211 +1,296 @@
-import { spawn, exec } from 'node:child_process';
+import { env as publicENV } from '$env/dynamic/public';
+import compose, { execCompose, type IDockerComposeResult } from 'docker-compose/dist/v2';
+import { Result, ResultAsync, err, ok } from 'neverthrow';
+import childProcess from 'node:child_process';
 import fs from 'node:fs';
+import path from 'node:path';
+import { removeCloudflareRecords } from './cloudflare';
 import { serverPB } from './database';
-import { Collections } from './database/types';
-import { env as penv } from '$env/dynamic/public';
+import { Collections, ServerState, type ServerRecord, type ServerResponse } from './database/types';
+import { createBackup } from './servers/backups';
+import { /* CustomError, */ ContainerState, CustomError, type ContainerData, type ContainerResult } from './types';
 
-function trycatch<T>(fn: () => T, catchFn: (e: unknown) => void): T | null {
-  try {
-    return fn();
-  } catch (e: unknown) {
-    catchFn(e);
-    return null;
-  }
+function getServerFolder(serverID: string): string {
+  const relative = `servers/${serverID}/`;
+  return path.resolve(relative);
 }
 
 export function containerDoesntExists(serverID: string): boolean {
-  return !fs.existsSync(`servers/${serverID}`);
+  return !fs.existsSync(getServerFolder(serverID));
 }
 
-export async function startContainer(serverID: string) {
-  if (containerDoesntExists(serverID)) return;
-  return trycatch(
-    async () => {
-      serverPB.collection(Collections.Servers).update(serverID, {
-        shutdown: false,
-        shutdownDate: null,
-        deletionDate: null,
-        serverFilesZiped: null
-      });
+function containerHasPauseFile(serverID: string): boolean {
+  return fs.existsSync(path.join(getServerFolder(serverID), 'server-files', '.paused'));
+}
 
-      const out = spawn('docker', ['compose', 'up', '-d'], { cwd: `servers/${serverID}` });
-      return new Promise((resolve) => out.on('close', (code) => resolve(code)));
-    },
-    (e) => {
-      console.error(e);
-      serverPB.collection(Collections.Servers).update(serverID, {
-        shutdown: true,
-        shutdownDate: new Date().toISOString(),
-        deletionDate: null,
-        serverFilesZiped: null
-      });
-    }
+export async function startContainer(serverID: string): ContainerResult<void> {
+  if (containerDoesntExists(serverID)) return err(new CustomError('Server not found'));
+
+  const composeFile = getServerFolder(serverID);
+  const containerStart = await ResultAsync.fromPromise(compose.upAll({ cwd: composeFile }), (e) => CustomError.from(e, 'Failed to start container'));
+
+  if (containerStart.isErr()) return err(containerStart.error);
+  // if (containerStart.isErr()) {
+  //   const dbResult = await ResultAsync.fromPromise(
+  //     serverPB.collection(Collections.Servers).update<ServerRecord>(serverID, {
+  //       state: ServerState.Stopped,
+  //       startDate: null,
+  //       shutdownDate: new Date().toISOString(),
+  //       deletionDate: null // TODO: Deletion date
+  //     }),
+  //     () => new CustomError('Failed to update server status on failed container start', )
+  //   );
+
+  //   return err(dbResult.isErr() ? dbResult.error : containerStart.error);
+  // }
+
+  const dbResult = await ResultAsync.fromPromise(
+    serverPB.collection(Collections.Servers).update<ServerRecord>(serverID, {
+      state: ServerState.Running,
+      startDate: new Date().toISOString(),
+      shutdownDate: null,
+      deletionDate: null
+    }),
+    () => new CustomError('Failed to update server status on successful container start')
+  );
+
+  return dbResult.map(() => undefined);
+}
+
+export async function stopContainer(serverID: string): ContainerResult<void> {
+  if (containerDoesntExists(serverID)) return err(new CustomError('Server not found'));
+
+  const containerStop = await ResultAsync.fromPromise(compose.stop({ cwd: getServerFolder(serverID) }), () => new CustomError('Failed to stop container'));
+
+  if (containerStop.isErr()) return err(containerStop.error);
+
+  const backupResult = await createBackup(serverID);
+  if (backupResult.isErr()) return err(backupResult.error);
+
+  const server = await ResultAsync.fromPromise(serverPB.collection(Collections.Servers).getOne(serverID), () => new CustomError('Failed to get server data from DB'));
+  if (server.isErr()) return err(server.error);
+
+  const updateResult = await ResultAsync.fromPromise(
+    serverPB.collection(Collections.Servers).update(serverID, {
+      state: ServerState.Stopped,
+      startDate: null,
+      shutdownDate: new Date().toISOString(),
+      deletionDate: server.value.canBeDeleted ? new Date(Date.now() + 1000 * 60 * 60 * +publicENV.PUBLIC_TIME_UNTIL_DELETION_AFTER_SHUTDOWN).toISOString() : null // 7 days
+    }),
+    (e) => CustomError.from(e, 'Failed to update server data on stop')
+  );
+  return updateResult.map(() => undefined);
+}
+
+export async function getContainerLogs(serverID: string, lines: number | 'all'): ContainerResult<string[]> {
+  if (containerDoesntExists(serverID)) return err(new CustomError('Server not found'));
+
+  const containerLogs = await ResultAsync.fromPromise(
+    compose.logs([], {
+      commandOptions: ['--tail', lines === 'all' ? '150' : Math.min(lines, 150).toString()],
+      cwd: getServerFolder(serverID)
+    }),
+    (e) => CustomError.from(e, 'Failed to get container logs')
+  );
+
+  return containerLogs.map((r) =>
+    r.out
+      .split('\n')
+      .map((s) => s.trim())
+      .map((line) => {
+        // Do some line shortenting and rephrasing.
+        if (/.*(RCON Client).*(Thread RCON Client).*(shutting down).*/.test(line)) return '';
+        if (/.*(RCON Listener).*(Thread RCON Client).*(started).*/.test(line)) return '';
+
+        return line;
+      })
+      .filter((line) => line !== '')
   );
 }
 
-export async function stopContainer(serverID: string) {
-  if (containerDoesntExists(serverID)) return;
-  return trycatch(
-    async () => {
-      const server = await serverPB.collection(Collections.Servers).getOne(serverID);
-      const serverFiles = await zipContainerFiles(serverID);
-      serverPB.collection(Collections.Servers).update(serverID, {
-        shutdown: true,
-        shutdownDate: new Date().toISOString(),
-        deletionDate: server.canBeDeleted ? new Date(Date.now() + 1000 * 60 * 60 * +penv.PUBLIC_TIME_UNTIL_DELETION_AFTER_SHUTDOWN).toISOString() : null, // 7 days
-        serverFilesZiped: serverFiles
-      });
+export async function sendCommandToContainer(serverID: string, command: string): ContainerResult<string[]> {
+  if (containerDoesntExists(serverID)) return err(new CustomError('Server not found'));
 
-      const out = spawn('docker', ['compose', 'down'], { cwd: `servers/${serverID}` });
-      return new Promise((resolve) => out.on('close', (code) => resolve(code)));
-    },
-    (e) => {
-      console.error(e);
-      serverPB.collection(Collections.Servers).update(serverID, {
-        shutdown: false,
-        shutdownDate: null,
-        deletionDate: null,
-        serverFilesZiped: null
-      });
-    }
+  const execResult = await ResultAsync.fromPromise(compose.exec('minecraft', `rcon-cli ${command}`, { cwd: getServerFolder(serverID) }), () => new CustomError('Failed to execute command in container'));
+
+  // updateServerState(server);
+
+  return execResult.map((r) =>
+    r.out
+      .split('\n')
+      .map((s) => s.trim())
+      .filter((line) => line !== '')
   );
 }
 
-export async function getContainerLogs(serverID: string, lines: number | 'all'): Promise<string[]> {
-  if (containerDoesntExists(serverID)) return [];
-  return new Promise((resolve) => {
-    exec(`docker compose logs --tail ${lines === 'all' ? 150 : Math.min(lines, 150)}`, { cwd: `servers/${serverID}` }, (error, stdout) => {
-      if (error) return resolve([]);
-      resolve(
-        stdout
-          .split('\n')
-          .map((s) => s.trim())
-          .filter((line) => line !== '')
-      );
-    });
+export async function getContainerPlayerCount(serverID: string): ContainerResult<{ max: number; online: number }> {
+  if (containerDoesntExists(serverID)) return err(new CustomError('Server not found'));
+
+  const execResult = await ResultAsync.fromPromise(compose.exec('minecraft', `mc-monitor status`, { cwd: getServerFolder(serverID) }), () => new CustomError('Failed to execute command getting player count'));
+
+  // updateServerState(server);
+
+  return execResult.map((r) => {
+    let online = r.out.substring(r.out.indexOf('online=') + 7);
+    online = online.substring(0, online.indexOf(' '));
+    let max = r.out.substring(r.out.indexOf('max=') + 4);
+    max = max.substring(0, max.indexOf(' '));
+    return { online: parseInt(online), max: parseInt(max) };
   });
 }
 
-export async function sendCommandToContainer(serverID: string, command: string): Promise<string[]> {
-  if (containerDoesntExists(serverID)) return [];
-  return new Promise((resolve) => {
-    exec(`docker compose exec --no-TTY minecraft rcon-cli ${command}`, { cwd: `servers/${serverID}` }, (error, stdout) => {
-      if (error) return resolve([]);
-      resolve(
-        stdout
-          .split('\n')
-          .map((s) => s.trim())
-          .filter((line) => line !== '')
-      );
-    });
-  });
+export async function getContainerData(serverID: string): ContainerResult<ContainerData> {
+  if (containerDoesntExists(serverID)) return err(new CustomError('Server not found'));
+
+  const psResult = await ResultAsync.fromPromise(execCompose('ps', [], { cwd: getServerFolder(serverID), commandOptions: ['--format', 'json'] }), () => new CustomError('Failed to read container data'));
+  if (psResult.isErr()) return err(psResult.error);
+
+  const containerJSON: ContainerData[] = JSON.parse(
+    psResult.value.out
+      .trim()
+      .split('\n')
+      .filter((s) => s.trim() != '')
+      .join('')
+  );
+
+  if (containerJSON.length === 0) return err(new CustomError('Failed to get any containers from ps command'));
+  if (!containerJSON[0]) return err(new CustomError('Parsed one undefined container from ps command'));
+
+  // Check if container is paused
+  const paused = containerHasPauseFile(serverID);
+  if (paused && containerJSON[0].State == ContainerState.Running) containerJSON[0].State = ContainerState.Paused;
+
+  return ok(containerJSON[0]);
 }
 
-type Container = {
+export async function getContainerRunningStatus(serverID: string): ContainerResult<boolean> {
+  if (containerDoesntExists(serverID)) return err(new CustomError('Server not found'));
+  return (await getContainerData(serverID)).map((d) => d.State == ContainerState.Running);
+  // return (await getContainerData(serverID)).map(d => d.State == ContainerState.Running);
+}
+
+// export function getAllServerStatuses(validIDs: string[]): Promise<Container[]> {
+//   return new Promise((resolve) => {
+//     exec('docker ps --format json', { cwd: 'servers' }, (error, stdout) => {
+//       if (error) resolve([]);
+//       const containers: (Container & { [key: string]: string })[] = JSON.parse(stdout);
+//       resolve(
+//         containers
+//           .filter((container) => validIDs.includes(container.Project))
+//           .map((container) => ({
+//             ID: container.ID,
+//             Project: container.Project,
+//             Created: container.Created,
+//             State: container.State,
+//             ExitCode: container.ExitCode
+//           }))
+//       );
+//     });
+//   });
+// }
+export type ContainerUsageStats = {
+  BlockIO: string;
+  CPUPerc: string;
+  Container: string;
   ID: string;
-  Project: string;
-  Created: number;
-  State: string;
-  ExitCode: number;
+  MemPerc: string;
+  MemUsage: string;
+  Name: string;
+  NetIO: string;
+  PIDs: string;
 };
 
-export async function getContainerData(serverID: string): Promise<Container | null> {
-  if (containerDoesntExists(serverID)) return null;
-  return new Promise((resolve) => {
-    exec('docker compose ps --format json', { cwd: `servers/${serverID}` }, (error, stdout) => {
-      if (error) return resolve(null);
+export async function getContainerUsageStats(serverID: string): ContainerResult<ContainerUsageStats> {
+  if (containerDoesntExists(serverID)) return err(new CustomError('Server not found'));
 
-      const containers: (Container & { [key: string]: string })[] = JSON.parse(stdout);
+  const containerData = await getContainerData(serverID);
+  if (containerData.isErr()) return err(containerData.error);
 
-      console.log('containers', containers);
-      if (containers.length === 0 || !containers[0]) return resolve(null);
+  const containerStats = await ResultAsync.fromPromise(
+    new Promise<IDockerComposeResult>((resolve, reject): void => {
+      const childProc = childProcess.spawn('docker', ['stats', containerData.value.ID, '--no-stream', '--no-trunc', '--format', '{{ json . }}']);
 
-      resolve({
-        ID: containers[0].ID,
-        Project: containers[0].Project,
-        Created: containers[0].Created,
-        State: containers[0].State,
-        ExitCode: containers[0].ExitCode
+      const result: IDockerComposeResult = { exitCode: null, err: '', out: '' };
+
+      childProc.on('error', (err) => reject(err));
+      childProc.stdout.on('data', (chunk) => (result.out += chunk.toString()));
+      childProc.stderr.on('data', (chunk) => (result.err += chunk.toString()));
+      childProc.on('exit', (exitCode): void => {
+        result.exitCode = exitCode;
+        setTimeout(() => {
+          if (exitCode === 0) resolve(result);
+          else reject(result);
+        }, 500);
       });
-    });
-  });
+    }),
+    () => new CustomError('Failed to the server usage stats')
+  );
+
+  return containerStats.map((v) =>
+    JSON.parse(
+      v.out
+        .trim()
+        .split('\n')
+        .filter((s) => s.trim() != '')
+        .join('')
+    )
+  );
+
+  // return new Promise((resolve) => {
+  //   exec('docker stats --no-stream --format json', { cwd: `servers/${serverID}` }, (error, stdout) => {
+  //     console.log(error);
+  //     if (error) return resolve(null);
+  //     console.log(stdout);
+  //     const containers: (ContainerUsageStats & { [key: string]: string })[] = JSON.parse(stdout);
+  //     console.log(containers);
+  //     if (containers.length === 0 || !containers[0]) return resolve(null);
+  //     const container = containers.filter((container) => container.Name.includes(serverID))[0];
+  //     resolve({
+  //       BlockIO: container.BlockIO,
+  //       CPUPerc: container.CPUPerc,
+  //       Container: container.Container,
+  //       ID: container.ID,
+  //       MemPerc: container.MemPerc,
+  //       MemUsage: container.MemUsage,
+  //       Name: container.Name,
+  //       NetIO: container.NetIO,
+  //       PIDs: container.PIDs
+  //     });
+  //   });
+  // });
 }
 
-const containerStatuses: { [key: string]: boolean } = {
-  starting: true,
-  running: true,
-  stopping: true,
-  paused: true,
-  exited: false,
-  dead: false
-};
-export async function getContainerRunningStatus(serverID: string): Promise<boolean> {
-  if (containerDoesntExists(serverID)) return false;
-  return await getContainerData(serverID).then((data) => data !== null && containerStatuses[data.State]);
-}
+export async function removeContainer(serverID: string, forcibly = false): ContainerResult<void> {
+  if (containerDoesntExists(serverID)) return err(new CustomError('Server not found'));
 
-export function getAllServerStatuses(validIDs: string[]): Promise<Container[]> {
-  return new Promise((resolve) => {
-    exec('docker ps --format json', { cwd: 'servers' }, (error, stdout) => {
-      if (error) resolve([]);
-      const containers: (Container & { [key: string]: string })[] = JSON.parse(stdout);
-      resolve(
-        containers
-          .filter((container) => validIDs.includes(container.Project))
-          .map((container) => ({
-            ID: container.ID,
-            Project: container.Project,
-            Created: container.Created,
-            State: container.State,
-            ExitCode: container.ExitCode
-          }))
-      );
-    });
-  });
-}
+  const stopped = await stopContainer(serverID);
+  if (stopped.isErr()) return err(stopped.error);
 
-export async function zipContainerFiles(serverID: string): Promise<File | null> {
-  if (containerDoesntExists(serverID)) return null;
-  return new Promise((resolve) => {
-    exec('zip -r serverFiles.zip .', { cwd: `servers/${serverID}` }, (error) => {
-      if (error) resolve(null);
-      resolve(new File([fs.readFileSync(`servers/${serverID}/serverFiles.zip`)], 'serverFiles.zip'));
-    });
-  });
-}
+  const remove = Result.fromThrowable(
+    () => fs.rmSync(getServerFolder(serverID), { recursive: true, force: forcibly }),
+    () => new CustomError('Failed to remove server files')
+  )();
+  if (remove.isErr()) err(remove.error);
 
-export async function removeContainer(serverID: string, forcibly = false) {
-  if (containerDoesntExists(serverID)) return;
-  if (
-    await new Promise((resolve) => {
-      exec('docker compose down', { cwd: `servers/${serverID}` }, (error) => {
-        if (error && !forcibly) resolve(1);
-        resolve(0);
-      });
-    })
-  )
-    return;
-  if (
-    await new Promise((resolve) => {
-      exec(`rm -rf ${serverID}`, { cwd: `servers` }, (error) => {
-        if (error && !forcibly) resolve(1);
-        resolve(0);
-      });
-    })
-  )
-    return;
+  const serverRecord = await serverPB.collection(Collections.Servers).getOne<ServerResponse>(serverID);
+  const removed = await removeCloudflareRecords(serverRecord.cloudflareCNAMERecordID, serverRecord.cloudflareSRVRecordID);
+  if (removed.isErr()) return err(new CustomError(removed.error.message, removed.error));
 
-  // TODO: Remove cloudflare server
+  const dbResult = await ResultAsync.fromPromise(serverPB.collection(Collections.Servers).delete(serverID), () => new CustomError('Failed to update database after removing server'));
+  return dbResult.map(() => undefined);
 
-  await serverPB
-    .collection(Collections.Servers)
-    .delete(serverID)
-    .catch(() => null);
+  // new Promise((resolve) => {
+  //   exec(`cd ../; rm -rf ${serverID}`, { cwd: `servers/${serverID}` }, (error) => {
+  //     console.log(error);
+  //     if (error && !forcibly) resolve(1);
+  //     resolve(0);
+  //   });
+  // });
 }
 
 export class ComposeBuilder {
   private readonly version = '3.9';
-  private readonly image = 'itzg/minecraft-server';
+  private readonly image = 'itzg/minecraft-server:latest';
   private port = 25565;
   private readonly volumes: string[] = ['./server-files:/data'];
   private readonly restart = 'no';
@@ -225,8 +310,12 @@ export class ComposeBuilder {
   }
 
   addVariable(key: string, value: string | number | boolean) {
-    this.variables.push({ key, value });
+    this.variables.push({ key, value: `'${value}'` });
     return this;
+  }
+
+  addListVariable(key: string, value: (string | number | boolean)[]) {
+    this.variables.push({ key, value: `|\n        ${value.join('        \n')}` });
   }
 
   build() {
@@ -243,7 +332,7 @@ export class ComposeBuilder {
     }
     file += `    environment:\n`;
     for (const variable of this.variables) {
-      file += `      ${variable.key}: "${variable.value}"\n`;
+      file += `      ${variable.key}: ${variable.value}\n`;
     }
     file += `    restart: "${this.restart}"\n`;
     file += `    healthcheck:\n`;

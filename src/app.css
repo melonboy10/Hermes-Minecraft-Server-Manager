@@ -2,6 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  color-scheme: dark light;
+}
+
+@font-face {
+  font-family: 'Minecraftia';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/Minecraftia-Regular.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Minecraftia';
+  font-style: normal;
+  font-weight: 600;
+  src: url('/fonts/Minecraftia-Bold.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Virgil';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/Virgil.woff2') format('woff2');
+}
+
 body,
 html {
   color: white;
@@ -19,29 +44,48 @@ html {
   --c1: rgb(3, 3, 3);
   --c2: rgb(2, 2, 2);
   --c3: rgb(1, 1, 1);
-  --ts: 50%/ calc(var(--sz) * 12.8) calc(var(--sz) * 22);
+  --ts: 50% / calc(var(--sz) * 12.8) calc(var(--sz) * 22);
   background:
     /*bottom*/
     conic-gradient(from 120deg at 50% 86.5%, var(--c1) 0 120deg, #fff0 0 360deg) var(--ts),
     conic-gradient(from 120deg at 50% 86.5%, var(--c1) 0 120deg, #fff0 0 360deg) var(--ts),
-    /*bottom dark*/
-    conic-gradient(from 120deg at 50% 74%, var(--c0) 0 120deg, #fff0 0 360deg) var(--ts),
-    /*right*/
-    conic-gradient(from 60deg at 60% 50%, var(--c1) 0 60deg, var(--c2) 0 120deg, #fff0 0 360deg) var(--ts),
-    /*left*/
-    conic-gradient(from 180deg at 40% 50%, var(--c3) 0 60deg, var(--c1) 0 120deg, #fff0 0 360deg) var(--ts),
-    /*top dark*/
-    conic-gradient(from 0deg at 90% 35%, var(--c0) 0 90deg, #fff0 0 360deg) var(--ts),
+    /*bottom dark*/ conic-gradient(from 120deg at 50% 74%, var(--c0) 0 120deg, #fff0 0 360deg) var(--ts),
+    /*right*/ conic-gradient(from 60deg at 60% 50%, var(--c1) 0 60deg, var(--c2) 0 120deg, #fff0 0 360deg) var(--ts),
+    /*left*/ conic-gradient(from 180deg at 40% 50%, var(--c3) 0 60deg, var(--c1) 0 120deg, #fff0 0 360deg) var(--ts),
+    /*top dark*/ conic-gradient(from 0deg at 90% 35%, var(--c0) 0 90deg, #fff0 0 360deg) var(--ts),
     conic-gradient(from -90deg at 10% 35%, var(--c0) 0 90deg, #fff0 0 360deg) var(--ts),
     conic-gradient(from 0deg at 90% 35%, var(--c0) 0 90deg, #fff0 0 360deg) var(--ts),
     conic-gradient(from -90deg at 10% 35%, var(--c0) 0 90deg, #fff0 0 360deg) var(--ts),
-    /*top*/
-    conic-gradient(from -60deg at 50% 13.5%, var(--c1) 0 120deg, #fff0 0 360deg) var(--ts),
+    /*top*/ conic-gradient(from -60deg at 50% 13.5%, var(--c1) 0 120deg, #fff0 0 360deg) var(--ts),
     conic-gradient(from -60deg at 50% 13.5%, var(--c1) 0 120deg, #fff0 0 360deg) var(--ts),
     conic-gradient(from -60deg at 50% 41%, var(--c2) 0 60deg, var(--c3) 0 120deg, #fff0 0 360deg) var(--ts),
     var(--c0);
+
+  @apply scroll-transparent;
 }
 
-.pixelated {
-  image-rendering: pixelated;
+@layer components {
+  .pixelated {
+    image-rendering: pixelated;
+  }
+
+  .error-outline {
+    position: relative;
+  }
+
+  .error-outline::before {
+    content: '';
+    display: block;
+    position: absolute;
+    border: 0.2rem solid red;
+    inset: -0.3rem;
+    border-radius: 1rem;
+    filter: url(#combined-hover);
+    user-select: none;
+    pointer-events: none;
+  }
+
+  .scroll-transparent {
+    scrollbar-color: rgba(255, 255, 255, 0.5) rgba(255, 255, 255, 0.2);
+  }
 }

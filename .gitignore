@@ -3,12 +3,13 @@ node_modules
 /build
 /.svelte-kit
 /package
-.env
-.env.*
+.env*.local
 !.env.example
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 database/*
 !database/pb_migrations
 !database/pb_hooks
-servers
+/servers
+_this_was_a_mistake_compose
+ccicon.png

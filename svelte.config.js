@@ -1,17 +1,43 @@
 import adapter from '@sveltejs/adapter-node';
 // import adapter from 'svelte-adapter-bun';
-import { vitePreprocess } from '@sveltejs/kit/vite';
+import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
+
+// const addJSLines = new Map();
+// /**
+//  * @return {import('svelte/compiler').PreprocessorGroup}
+//  */
+// function transformLet() {
+//   return {
+//     name: '@let',
+//     script: ({ content, filename, markup }) => {
+//       if (!filename.endsWith('+page.svelte')) return;
+//       console.log(filename);
+//       console.log('script');
+
+//       return {
+//         code: content + '\n' + (addJSLines.get(filename) ?? []).join('\n')
+//       };
+//     },
+//     markup: ({ content, filename }) => {
+//       if (!filename.endsWith('+page.svelte')) return;
+//       console.log(filename);
+//       console.log('markup');
+
+//       const allLets = [...(content.match(/{@let .*}/) ?? [])];
+//       const toJS = allLets.map((l) => [...(l.match('(?!{)(?!@).*(?=})') ?? [])][0] + ';');
+//       addJSLines.set(filename, toJS);
+//       return {
+//         code: content.replaceAll(/{@let .*}/g, '')
+//       };
+//     }
+//   };
+// }
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
-  // Consult https://kit.svelte.dev/docs/integrations#preprocessors
-  // for more information about preprocessors
-  preprocess: vitePreprocess(),
+  preprocess: [/* transformLet(),  */ vitePreprocess()],
 
   kit: {
-    // adapter-auto only supports some environments, see https://kit.svelte.dev/docs/adapter-auto for a list.
-    // If your environment is not supported or you settled on a specific environment, switch out the adapter.
-    // See https://kit.svelte.dev/docs/adapters for more information about adapters.
     adapter: adapter(),
     alias: {
       $assets: './src/assets/*'
