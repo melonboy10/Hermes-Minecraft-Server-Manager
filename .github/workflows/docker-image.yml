@@ -5,6 +5,10 @@ on:
     types:
       - closed
 
+  push:
+    branches:
+      - main
+
 env:
   TEST_TAG: melonboy10/hermes-minecraft-server-manager:test
   LATEST_TAG: melonboy10/hermes-minecraft-server-manager:latest
