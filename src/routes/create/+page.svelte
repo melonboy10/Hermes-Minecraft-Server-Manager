@@ -70,7 +70,7 @@
 
 <form
   method="post"
-  class="flex w-full max-w-4xl flex-col gap-4 p-8 max-sm:p-0"
+  class="flex w-full max-w-4xl flex-col gap-4 p-8 pt-0 max-sm:p-0"
   enctype="multipart/form-data"
   use:enhance={() => {
     createButtonLoading = true;
@@ -92,14 +92,14 @@
     <label class={`block`}>
       <span class="font-semibold text-gray-400">Server Title<sup class="text-red-400">*</sup></span>
       <div class={`${errors.title ? 'error-outline' : ''}`}>
-        <input type="text" name="title" id="title" placeholder="Server Title" class="w-full rounded-md bg-gray-800 p-2 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary" />
+        <input type="text" name="title" id="title" placeholder="Server Title" class="hover:bg-gray-750 w-full rounded-md bg-gray-800 p-2 px-4 py-2 transition-all focus:outline-none focus:ring-2 focus:ring-primary" />
         <span class={`block w-full text-center font-handwriting ${errors.title ? '' : 'hidden'}`}>{errors.title}</span>
       </div>
     </label>
     <label class={`block`}>
       <span class="font-semibold text-gray-400">Subdomain</span>
       <div class={`${errors.subdomain ? 'error-outline' : ''}`}>
-        <input type="text" name="subdomain" placeholder="Subdomain" class="w-full rounded-md bg-gray-800 p-2 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary" />
+        <input type="text" name="subdomain" placeholder="Subdomain" class="hover:bg-gray-750 w-full rounded-md bg-gray-800 p-2 px-4 py-2 transition-all focus:outline-none focus:ring-2 focus:ring-primary" />
         <span class={`block w-full text-center font-handwriting ${errors.subdomain ? '' : 'hidden'}`}>{errors.subdomain}</span>
       </div>
     </label>
@@ -117,13 +117,13 @@
         bind:this={iconFileElement}
         on:change={handleIconChange}
         class="w-full file:mr-4 file:cursor-pointer file:rounded-md
-        file:border-2 file:border-solid
-        file:border-secondary
+        file:border-2 file:border-solid file:border-secondary
         file:bg-transparent
         file:px-4
-        file:py-2 file:text-sm
-        file:font-semibold
+        file:py-2
+        file:text-sm file:font-semibold
         file:text-secondary
+        file:transition-all
       hover:file:bg-secondary hover:file:text-black" />
       <span class="whitespace-nowrap text-sm text-gray-400">*Image will be resized</span>
     </div>
@@ -151,7 +151,7 @@
   <div class="font-semibold text-gray-400">Time to Live</div>
   <div class={`grid grid-cols-2 gap-4 md:grid-cols-4 ${errors.timeToLive ? 'error-outline' : ''}`}>
     {#each Object.entries(TimeToLive) as [timeName, time]}
-      <label class={`flex cursor-pointer items-center gap-2 rounded-md bg-gray-800 px-4 py-2 capitalize has-[:checked]:ring-2 has-[:checked]:ring-primary`}>
+      <label class={`hover:bg-gray-750 flex cursor-pointer items-center gap-2 rounded-md bg-gray-800 px-4 py-2 capitalize transition-all has-[:checked]:text-primary has-[:checked]:ring-2 has-[:checked]:ring-primary`}>
         <input type="radio" name="timeToLive" value={time} bind:group={selectedTimeToLive} class=" hidden" />
         {timeName}
       </label>
@@ -164,7 +164,7 @@
   <div class="font-semibold text-gray-400">Server Software</div>
   <div class={`grid grid-cols-2 gap-4 md:grid-cols-4 ${errors.serverSoftware ? 'error-outline' : ''}`}>
     {#each Object.keys(ServerSoftwareOptions) as software}
-      <label class={`flex cursor-pointer items-center gap-2 rounded-md bg-gray-800 px-4 py-2 capitalize has-[:checked]:ring-2 has-[:checked]:ring-primary`}>
+      <label class={`hover:bg-gray-750 flex cursor-pointer items-center gap-2 rounded-md bg-gray-800 px-4 py-2 capitalize transition-all has-[:checked]:text-primary has-[:checked]:ring-2 has-[:checked]:ring-primary`}>
         <input type="radio" name="serverSoftware" value={software} bind:group={selectedSoftware} class=" hidden" />
         {software}
       </label>
@@ -186,13 +186,13 @@
             <div class="h-4 w-4"></div>
           {/if}
         </div>
-        <div class="absolute top-0 h-fit rounded-md shadow-lg hover:z-10 group-hover:bg-gray-800">
+        <div class="absolute top-0 h-fit rounded-md bg-gray-800 shadow-lg hover:z-10">
           {#each version as versionNumber}
             <label
               class={`
-                flex w-full items-center justify-between gap-1 rounded-md bg-gray-800 px-4 py-2 text-left 
-                first:relative checked:block hover:bg-gray-700 group-hover:flex group-hover:bg-transparent 
-                ${selectedGameVersion === versionNumber ? 'z-10 text-primary ring-2 ring-primary' : 'text-white'}
+                hover:bg-gray-750 flex w-full cursor-pointer items-center justify-between gap-1 rounded-md  px-4 py-2
+                text-left transition-all first:relative checked:block group-hover:flex
+                ${selectedGameVersion === versionNumber ? 'text-primary ring-2 ring-primary' : 'text-white'}
                 ${(version[0] == versionNumber && !version.includes(selectedGameVersion)) || selectedGameVersion == versionNumber ? 'block' : 'hidden'} 
               `}>
               {versionNumber}
@@ -222,13 +222,13 @@
     <!-- Selector -->
     <div class={`flex justify-center gap-4 ${errors.worldCreator ? 'error-outline' : ''}`}>
       {#if ServerSoftwareOptions[selectedSoftware]?.newWorld}
-        <label class="cursor-pointer border-b-4 border-gray-700 px-4 py-2 has-[:checked]:border-primary has-[:checked]:font-bold">
+        <label class="cursor-pointer border-b-4 border-gray-700 px-4 py-2 transition-all hover:px-8 has-[:checked]:border-primary has-[:checked]:font-bold">
           <input type="radio" name="worldCreator" value="new" bind:group={worldCreator} class="hidden" />
           New World
         </label>
       {/if}
       {#if ServerSoftwareOptions[selectedSoftware]?.fromSource}
-        <label class="cursor-pointer border-b-4 border-gray-700 px-4 py-2 has-[:checked]:border-primary has-[:checked]:font-bold">
+        <label class="cursor-pointer border-b-4 border-gray-700 px-4 py-2 transition-all hover:px-8 has-[:checked]:border-primary has-[:checked]:font-bold">
           <input type="radio" name="worldCreator" value="source" bind:group={worldCreator} class="hidden" />
           From Source
         </label>
@@ -242,7 +242,7 @@
       <!-- Seed -->
       <div class="font-semibold text-gray-400">World Seed</div>
       <label class={`block ${errors.worldSeed ? 'error-outline' : ''}`}>
-        <input type="text" class="w-full rounded-md bg-gray-800 p-2 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary" name="worldSeed" placeholder="World Seed" />
+        <input type="text" class="hover:bg-gray-750 w-full rounded-md bg-gray-800 p-2 px-4 py-2 transition-all focus:outline-none focus:ring-2 focus:ring-primary" name="worldSeed" placeholder="World Seed" />
         <span class={`block w-full text-center font-handwriting ${errors.worldSeed ? '' : 'hidden'}`}>{errors.worldSeed}</span>
       </label>
 
@@ -250,7 +250,7 @@
       <div class="font-semibold text-gray-400">World Type</div>
       <div class={`grid grid-cols-2 gap-4 md:grid-cols-4 ${errors.worldType ? 'error-outline' : ''}`}>
         {#each Object.values(WorldType) as type}
-          <label class="flex cursor-pointer items-center gap-2 rounded-md bg-gray-800 px-4 py-2 capitalize has-[:checked]:text-primary has-[:checked]:ring-2 has-[:checked]:ring-primary">
+          <label class="hover:bg-gray-750 flex cursor-pointer items-center gap-2 rounded-md bg-gray-800 px-4 py-2 capitalize transition-all has-[:checked]:text-primary has-[:checked]:ring-2 has-[:checked]:ring-primary">
             <input type="radio" name="worldType" value={type} bind:group={worldType} class="hidden" />
             {type.replace('_', ' ')}
           </label>
@@ -269,7 +269,7 @@
     {:else if worldCreator == 'source'}
       <div class="font-semibold text-gray-400">World Source</div>
       <label class={`block ${errors.worldSourceURL ? 'error-outline' : ''}`}>
-        <input type="url" class="w-full rounded-md bg-gray-800 p-2 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary" name="worldSourceURL" placeholder="www.downloadlink.com" />
+        <input type="url" class="hover:bg-gray-750 w-full rounded-md bg-gray-800 p-2 px-4 py-2 transition-all focus:outline-none focus:ring-2 focus:ring-primary" name="worldSourceURL" placeholder="www.downloadlink.com" />
         <span class={`block w-full text-center font-handwriting ${errors.worldSourceURL ? '' : 'hidden'}`}>{errors.worldSourceURL}</span>
       </label>
 
@@ -277,16 +277,18 @@
       <label class={`${errors.worldSource ? 'error-outline' : ''}`}>
         <input
           type="file"
-          class="w-full rounded-md bg-gray-800 p-2
-            file:mr-4 file:cursor-pointer
-          file:rounded-md
-            file:border-2
+          class=" w-full rounded-md bg-gray-800
+            p-2 file:mr-4
+            file:cursor-pointer
+            file:rounded-md
+          file:border-2
             file:border-solid
-            file:border-secondary file:bg-transparent
-            file:px-4
-          file:py-2
-          file:text-sm file:font-semibold
-            file:text-secondary hover:file:bg-secondary hover:file:text-black"
+            file:border-secondary
+            file:bg-transparent file:px-4
+            file:py-2
+          file:text-sm
+          file:font-semibold file:text-secondary
+            file:transition-all hover:file:bg-secondary hover:file:text-black"
           name="worldSource"
           accept="application/zip"
           placeholder="World File" />
@@ -305,7 +307,7 @@
     <!-- Difficulty Selector -->
     <label class={`flex items-center justify-between rounded-md bg-gray-800 p-2 px-4 max-sm:order-1 ${errors.difficulty ? 'error-outline' : ''}`}>
       Difficulty
-      <select name="difficulty" class="w-1/2 rounded-md bg-gray-700 p-1 px-4">
+      <select name="difficulty" class="hover:bg-gray-650 w-1/2 cursor-pointer rounded-md bg-gray-700 p-1 px-4 transition-all focus:outline-none focus:ring-2 focus:ring-primary">
         <option value="peaceful">Peaceful</option>
         <option value="easy">Easy</option>
         <option value="normal" selected>Normal</option>
@@ -317,7 +319,7 @@
     <!-- Gamemode Selector -->
     <label class={`flex items-center justify-between rounded-md bg-gray-800 p-2 px-4 max-sm:order-2 ${errors.gamemode ? 'error-outline' : ''}`}>
       Gamemode
-      <select name="gamemode" class="w-1/2 rounded-md bg-gray-700 p-1 px-4">
+      <select name="gamemode" class="hover:bg-gray-650 w-1/2 cursor-pointer rounded-md bg-gray-700 p-1 px-4 transition-all focus:outline-none focus:ring-2 focus:ring-primary">
         <option value="survival" selected>Survival</option>
         <option value="creative">Creative</option>
         <option value="adventure">Adventure</option>
@@ -329,7 +331,7 @@
     <!-- Max Players -->
     <label class={`flex items-center justify-between rounded-md bg-gray-800 p-2 px-4 max-sm:order-3 ${errors.maxPlayers ? 'error-outline' : ''}`}>
       Max Players
-      <input type="number" class="w-1/2 rounded-md bg-gray-700 p-1 px-4 text-center" name="maxPlayers" placeholder="Max Players" value="10" />
+      <input type="number" class="hover:bg-gray-650 w-1/2 rounded-md bg-gray-700 p-1 px-4 text-center transition-all focus:outline-none focus:ring-2 focus:ring-primary" name="maxPlayers" placeholder="Max Players" value="10" />
     </label>
     <span class={`block w-full text-center font-handwriting ${errors.maxPlayers ? '' : 'hidden'}`}>{errors.maxPlayers}</span>
 
@@ -341,7 +343,7 @@
 
     <label class={`flex items-center justify-between rounded-md bg-gray-800 p-2 px-4 max-sm:order-4 ${errors.viewDistance ? 'error-outline' : ''}`}>
       View Distance
-      <input type="number" class="w-1/2 rounded-md bg-gray-700 p-1 px-4 text-center" value="16" name="viewDistance" placeholder="View Distance" />
+      <input type="number" class="hover:bg-gray-650 w-1/2 rounded-md bg-gray-700 p-1 px-4 text-center transition-all focus:outline-none focus:ring-2 focus:ring-primary" value="16" name="viewDistance" placeholder="View Distance" />
     </label>
     <span class={`block w-full text-center font-handwriting ${errors.viewDistance ? '' : 'hidden'}`}>{errors.viewDistance}</span>
 
@@ -353,7 +355,7 @@
 
     <label class={`flex items-center justify-between rounded-md bg-gray-800 p-2 px-4 max-sm:order-5 ${errors.simulationDistance ? 'error-outline' : ''}`}>
       Simulation Distance
-      <input type="number" class="w-1/2 rounded-md bg-gray-700 p-1 px-4 text-center" value="10" name="simulationDistance" placeholder="Simulation Distance" />
+      <input type="number" class="hover:bg-gray-650 w-1/2 rounded-md bg-gray-700 p-1 px-4 text-center transition-all focus:outline-none focus:ring-2 focus:ring-primary" value="10" name="simulationDistance" placeholder="Simulation Distance" />
     </label>
     <span class={`block w-full text-center font-handwriting ${errors.simulationDistance ? '' : 'hidden'}`}>{errors.simulationDistance}</span>
 
@@ -370,14 +372,14 @@
       <!-- <textarea class="h-full w-full" name="whitelist" placeholder={`[\n\t{\n\t\tuuid: "0000-0000-0000-0000",\n\t\tname: "username"\n\t}\n]`} /> -->
       <input name="whitelist" class="hidden" value={JSON.stringify(whitelistPlayers)} />
       <PlayerList bind:list={whitelistPlayers} />
-      <span class={`block w-full text-center font-handwriting ${errors.motd ? '' : 'hidden'}`}>{errors.motd}</span>
+      <span class={`block w-full text-center font-handwriting ${errors.whitelist ? '' : 'hidden'}`}>{errors.whitelist}</span>
     </label>
     <label class={`${errors.ops ? 'error-outline' : ''}`}>
       <div class="font-semibold text-gray-400">Operators</div>
       <!-- <textarea class="h-full w-full" name="ops" placeholder={`[\n\t{\n\t\tuuid: "0000-0000-0000-0000"\n\t\tname: "username"\n\t\tlevel: 4,\n\t\tbypassesPlayerLimit: true\n\t}\n]`} /> -->
       <input name="ops" class="hidden" value={JSON.stringify(operatorPlayers)} />
       <PlayerList bind:list={operatorPlayers} />
-      <span class={`block w-full text-center font-handwriting ${errors.motd ? '' : 'hidden'}`}>{errors.motd}</span>
+      <span class={`block w-full text-center font-handwriting ${errors.ops ? '' : 'hidden'}`}>{errors.ops}</span>
     </label>
     <!-- <label class={`min-h-[16rem] ${errors.bannedPlayers ? 'error-outline' : ''}`}>
       Banned Players
@@ -414,7 +416,7 @@
   </div>
 
   <div class="grid grid-cols-3 gap-4 max-sm:flex max-sm:flex-col">
-    <label class={`flex cursor-pointer items-center justify-center gap-2 rounded-md bg-gray-800 p-2 ${errors.eula ? 'error-outline' : ''}`}>
+    <label class={`hover:bg-gray-750 flex cursor-pointer items-center justify-center gap-2 rounded-md bg-gray-800 p-2 transition-all ${errors.eula ? 'error-outline' : ''}`}>
       <input type="checkbox" name="eula" value="true" class="accent-primary" />
       <span>
         <span>I agree to the</span> <a href="https://www.minecraft.net/en-us/eula" target="_blank" rel="noopener noreferrer" class="underline">Minecraft EULA</a>

@@ -1,8 +1,8 @@
 <script lang="ts">
   import { getFileURL, stateDisplay, timeUntil } from '$lib';
-  import type { PageServerData } from './$types';
+  import type { PageData } from './$types';
 
-  export let data: PageServerData;
+  export let data: PageData;
   $: updates = data.update;
 </script>
 

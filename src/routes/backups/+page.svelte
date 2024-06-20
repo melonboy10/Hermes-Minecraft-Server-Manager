@@ -1,8 +1,8 @@
 <script lang="ts">
   import { formatFileSize, getFileURL, timeUntil } from '$lib';
-  import type { PageServerData } from './$types';
+  import type { PageData } from './$types';
 
-  export let data: PageServerData;
+  export let data: PageData;
   const entries = Object.entries(data.backups);
   entries.forEach(([, value]) => {
     value.sort((a, b) => Date.parse(b.created) - Date.parse(a.created));

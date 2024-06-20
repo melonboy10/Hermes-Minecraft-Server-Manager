@@ -3,10 +3,10 @@
   import { getFileURL, stateDisplay, timeUntil } from '$lib';
   import { ServerState, TimeToLiveMiliseconds } from '$lib/database/types';
 
-  import type { PageServerData } from './$types';
+  import type { PageData } from './$types';
   import FormLoadingButton from './[serverID]/FormLoadingButton.svelte';
 
-  export let data: PageServerData;
+  export let data: PageData;
   let indexOfFirstStartedOrPaused = data.servers.findIndex((s) => s.state == ServerState.Running || s.state == ServerState.Paused);
   let indexOfFirstStopped = data.servers.findIndex((s) => s.state == ServerState.Stopped);
 </script>
@@ -52,5 +52,12 @@
   </a>
 {/each}
 {#if data.servers.length === 0}
-  <p class="text-center">No servers available</p>
+  <p class="py-16 text-center text-lg">
+    No servers currently available
+    {#await data.allowCreate then allowCreate}
+      {#if allowCreate}
+        <a data-sveltekit-preload-data="off" href="/create" class="my-4 block rounded-md border-2 border-secondary bg-transparent p-2 px-4 text-lg font-bold text-secondary transition-colors hover:bg-secondary hover:text-black">Create One?</a>
+      {/if}
+    {/await}
+  </p>
 {/if}

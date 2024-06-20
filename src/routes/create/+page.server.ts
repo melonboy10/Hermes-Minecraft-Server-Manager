@@ -5,7 +5,7 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions } from './$types';
 import { getPortsRemaining } from '$lib/servers/ports';
 
-export async function load(/* {}: PageServerLoadEvent */) {
+export async function load(/* { params }: PageServerLoadEvent */) {
   if ((await getPortsRemaining()) <= 0) return error(405, 'Servers cannot be created at this time.');
 }
 

@@ -46,16 +46,16 @@
   };
 </script>
 
-<div class="flex flex-col items-stretch gap-4 rounded-md bg-gray-800 p-2">
+<div class="flex flex-col items-stretch gap-2 rounded-md bg-gray-800 p-2">
   {#each list as n, index (n.id)}
-    <div role="listitem" class="flex gap-2 rounded-md" draggable={true} on:dragstart={(event) => dragstart(event, index)} on:drop|preventDefault={(event) => drop(event, index)} on:dragover={() => false} on:dragenter={() => (hovering = index)} class:is-active={hovering === index}>
-      <input class="w-full rounded-md bg-gray-700 px-4 py-2" bind:value={n.name} placeholder="Username" />
-      <button on:click={() => (list = list.filter((_, i) => i !== index))}>
-        <svg xmlns="http://www.w3.org/2000/svg" class="fill-red-500/80" height="24" viewBox="0 -960 960 960" width="24"><path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z" /></svg>
+    <div role="listitem" class="flex gap-2 rounded-md pr-1" draggable={true} on:dragstart={(event) => dragstart(event, index)} on:drop|preventDefault={(event) => drop(event, index)} on:dragover={() => false} on:dragenter={() => (hovering = index)} class:is-active={hovering === index}>
+      <input class="hover:bg-gray-650 w-full rounded-md bg-gray-700 px-4 py-2 transition-all focus:outline-none focus:ring-2 focus:ring-primary" bind:value={n.name} placeholder="Username" />
+      <button on:click={() => (list = list.filter((_, i) => i !== index))} class="my-1 rounded-md fill-red-500/80 p-1 transition-all hover:bg-red-500/80 hover:fill-white">
+        <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z" /></svg>
       </button>
     </div>
   {/each}
-  <button on:click={() => (list = [...list, { name: '', id: nextId++ }])} type="button" class="rounded-md bg-gray-700 p-1 px-4">Add Player</button>
+  <button on:click={() => (list = [...list, { name: '', id: nextId++ }])} type="button" class="hover:bg-gray-650 rounded-md bg-gray-700 p-1 px-4 transition-all">Add Player</button>
 </div>
 
 <style>

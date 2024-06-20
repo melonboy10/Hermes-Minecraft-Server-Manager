@@ -5,3 +5,4 @@
 - [ ] bluemap support
 - [ ] maximum backup count
 - [ ] add a way to delete backups
+- [ ] add hint messages to the UI
