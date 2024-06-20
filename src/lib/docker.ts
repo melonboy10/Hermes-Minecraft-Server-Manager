@@ -320,7 +320,7 @@ export class ComposeBuilder {
   }
 
   addListVariable(key: string, value: (string | number | boolean)[]) {
-    this.variables.push({ key, value: `|\n        ${value.join('        \n')}` });
+    this.variables.push({ key, value: `|\n        ${value.join('\n        ')}` });
   }
 
   build() {
