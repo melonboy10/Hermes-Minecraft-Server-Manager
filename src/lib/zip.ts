@@ -10,8 +10,13 @@ interface CommandResult {
   command: string;
 }
 
-function command(childProc: ChildProcessWithoutNullStreams): Promise<CommandResult> {
+function command(command: string, args: string[], cwd: string): Promise<CommandResult> {
   return new Promise((resolve, reject): void => {
+    const childProc = childProcess.spawn(command, args, {
+      cwd,
+      timeout: 1000 * 30 // 30 seconds tops
+    });
+
     childProc.on('error', (err): void => {
       reject(err);
     });
@@ -45,24 +50,11 @@ function command(childProc: ChildProcessWithoutNullStreams): Promise<CommandResu
   });
 }
 
-export function zip(inPath: string, outPath: string, ignoreFiles: string[] = ['**/.**']) {
+export async function zip(inPath: string, outPath: string, ignoreFiles: string[] = ['**/.**']) {
   // console.log('Running zip', 'zip', ['--recurse-paths', '--update', outPath, inPath, '--exclude', ...ignoreFiles]);
-  return ResultAsync.fromPromise(
-    command(
-      childProcess.spawn('zip', ['--recurse-paths', '--update', outPath, inPath, '--exclude', ...ignoreFiles], {
-        cwd: path.dirname(inPath),
-        timeout: 1000 * 30 // 30 seconds tops
-      })
-    ),
-    (e) => CustomError.from(e, 'Failed to zip files')
-  );
+  return ResultAsync.fromPromise(command('zip', ['--recurse-paths', '--update', outPath, inPath, '--exclude', ...ignoreFiles], path.dirname(inPath)), (e) => CustomError.from(e, 'Failed to zip files'));
 }
 
-export function unzip(inPath: string, outPath: string) {
-  return command(
-    childProcess.spawn('unzip', ['-o', inPath, '-d', outPath], {
-      cwd: path.dirname(inPath),
-      timeout: 1000 * 30 // 30 seconds tops
-    })
-  );
+export async function unzip(inPath: string, outPath: string) {
+  return ResultAsync.fromPromise(command('unzip', ['-o', inPath, '-d', outPath], path.dirname(inPath)), (e) => CustomError.from(e, 'Failed to unzip files'));
 }
