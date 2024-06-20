@@ -9,6 +9,8 @@
   import FormLoadingButton from './FormLoadingButton.svelte';
 
   export let data: PageData;
+  let cacheLogs = data.logs;
+  let cacheStats = data.stats;
   // export let form: ActionData;
 
   $: serverStatus = stateDisplay(data.server.state);
@@ -21,11 +23,14 @@
     await invalidateAll();
 
     await data.stats;
+    cacheStats = data.stats;
     await data.logs;
+    cacheLogs = data.logs;
     updateButtonLoading = false;
   }
   onMount(() => {
-    const interval = setInterval(updateStatsAndLogs, 1000 * 10);
+    const intervalTime = server.state == ServerState.Running ? 1000 * 10 /* 10s */ : 1000 * 60; /* 1m */
+    const interval = setInterval(updateStatsAndLogs, intervalTime);
     return () => clearInterval(interval);
   });
 </script>
@@ -55,7 +60,7 @@
   </div>
 
   <div class="flex items-center gap-4">
-    {#await data.stats}
+    {#await cacheStats}
       <div class="flex h-6 w-full animate-pulse items-center gap-2 rounded-md bg-gray-600" />
       <div class="flex h-6 w-full animate-pulse items-center gap-2 rounded-md bg-gray-600" />
     {:then stats}
@@ -111,7 +116,7 @@
   {commandMessage}
 </div>
 <div class="scroll-transparent flex h-[65vh] w-full max-w-6xl resize-y flex-col-reverse overflow-x-scroll whitespace-nowrap rounded-md bg-gray-800 p-4 font-mono text-sm [overflow-anchor:auto] max-sm:text-[.70rem]">
-  {#await data.logs}
+  {#await cacheLogs}
     <div class="h-full w-full animate-pulse rounded-md bg-gray-600" />
   {:then logs}
     {#if logs.error}

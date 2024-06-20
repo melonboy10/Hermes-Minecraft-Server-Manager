@@ -55,8 +55,8 @@ export async function createNewServer(data: z.infer<typeof ServerCreationSchema>
   const serverFilesPath = `${serverFolderPath}/server-files`;
   fs.mkdirSync(serverFilesPath, { recursive: true });
 
-  if (data.icon) fs.writeFileSync(`${serverFilesPath}/icon.png`, Buffer.from(await data.icon.arrayBuffer()));
-  else fs.writeFileSync(`${serverFilesPath}/icon.png`, Buffer.from(defaultIconBuffer));
+  if (data.icon) fs.writeFileSync(`${serverFilesPath}/server-icon.png`, Buffer.from(await data.icon.arrayBuffer()));
+  else fs.writeFileSync(`${serverFilesPath}/server-icon.png`, Buffer.from(defaultIconBuffer));
 
   // if (data.whitelist.length > 0) fs.writeFileSync(`${serverFilesPath}/whitelist.json`, JSON.stringify(data.whitelist));
   // if (data.ops.length > 0) fs.writeFileSync(`${serverFilesPath}/ops.json`, JSON.stringify(data.ops));
@@ -89,7 +89,7 @@ export async function createNewServer(data: z.infer<typeof ServerCreationSchema>
   builder.addVariable('TYPE', data.serverSoftware.toUpperCase());
   builder.addVariable('VERSION', data.gameVersion);
   builder.addVariable('MOTD', data.motd);
-  builder.addVariable('ICON', '/data/icon.png');
+  // builder.addVariable('ICON', '/data/icon.png');
   // builder.addVariable('OVERRIDE_ICON', 'true');
 
   builder.addVariable('DIFFICULTY', data.difficulty.toUpperCase());
