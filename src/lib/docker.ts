@@ -126,7 +126,7 @@ export async function sendCommandToContainer(serverID: string, command: string):
 export async function getContainerPlayerCount(serverID: string): ContainerResult<{ max: number; online: number }> {
   if (containerDoesntExists(serverID)) return err(new CustomError('Server not found'));
 
-  const execResult = await ResultAsync.fromPromise(compose.exec('minecraft', `mc-monitor status`, { cwd: getServerFolder(serverID) }), () => new CustomError('Failed to execute command getting player count'));
+  const execResult = await ResultAsync.fromPromise(compose.exec('minecraft', `mc-monitor status`, { cwd: getServerFolder(serverID) }), (e) => CustomError.from(e, 'Failed to execute command getting player count'));
 
   // updateServerState(server);
 
@@ -142,16 +142,22 @@ export async function getContainerPlayerCount(serverID: string): ContainerResult
 export async function getContainerData(serverID: string): ContainerResult<ContainerData> {
   if (containerDoesntExists(serverID)) return err(new CustomError('Server not found'));
 
-  const psResult = await ResultAsync.fromPromise(execCompose('ps', [], { cwd: getServerFolder(serverID), commandOptions: ['--format', 'json'] }), () => new CustomError('Failed to read container data'));
+  const psResult = await ResultAsync.fromPromise(execCompose('ps', [], { cwd: getServerFolder(serverID), commandOptions: ['-a', '--format', 'json'] }), (e) => CustomError.from(e, 'Failed to read container data'));
   if (psResult.isErr()) return err(psResult.error);
 
-  const containerJSON: ContainerData[] = JSON.parse(
-    psResult.value.out
-      .trim()
-      .split('\n')
-      .filter((s) => s.trim() != '')
-      .join('')
-  );
+  const containerJSONResult = Result.fromThrowable(
+    () =>
+      JSON.parse(
+        psResult.value.out
+          .trim()
+          .split('\n')
+          .filter((s) => s.trim() != '')
+          .join('')
+      ),
+    (e) => CustomError.from(e, 'Failed to parse container data')
+  )();
+  if (containerJSONResult.isErr()) return err(containerJSONResult.error);
+  const containerJSON: ContainerData[] = containerJSONResult.value;
 
   if (containerJSON.length === 0) return err(new CustomError('Failed to get any containers from ps command'));
   if (!containerJSON[0]) return err(new CustomError('Parsed one undefined container from ps command'));
