@@ -15,7 +15,7 @@ env:
 
 jobs:
   build:
-    if: github.event.pull_request.merged == true
+    if: github.event.pull_request.merged == true || github.event_name == 'push'
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
 
