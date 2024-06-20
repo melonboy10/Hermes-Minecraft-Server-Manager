@@ -29,7 +29,7 @@
     updateButtonLoading = false;
   }
   onMount(() => {
-    const intervalTime = server.state == ServerState.Running ? 1000 * 10 /* 10s */ : 1000 * 60; /* 1m */
+    const intervalTime = data.server.state == ServerState.Running ? 1000 * 10 /* 10s */ : 1000 * 60; /* 1m */
     const interval = setInterval(updateStatsAndLogs, intervalTime);
     return () => clearInterval(interval);
   });

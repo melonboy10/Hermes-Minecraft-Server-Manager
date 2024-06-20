@@ -35,7 +35,7 @@
                     <details>
                       <summary class="cursor-pointer text-red-200">
                         <span class="float-right text-sm text-gray-500" title={record.variables.time}>{timeUntil(record.variables.time)} </span>
-                        {record.error.message}
+                        {record.error?.message}
                       </summary>
                       <table>
                         {#each Object.entries(record.variables) as variable}
@@ -48,7 +48,7 @@
                       <details>
                         <summary class="cursor-pointer text-red-200"> Show Error </summary>
                         <pre>
-                          {JSON.stringify(record.error.error, null, 2).replace(/\\n/g, '\n')}
+                          {JSON.stringify(record.error?.error, null, 2).replace(/\\n/g, '\n')}
                         </pre>
                       </details>
                     </details>
