@@ -3,3 +3,5 @@
 - [ ] update minecraft server docker image
 - [ ] better minecraft version control
 - [ ] bluemap support
+- [ ] maximum backup count
+- [ ] add a way to delete backups

@@ -6,7 +6,7 @@
   $: updates = data.update;
 </script>
 
-<div class="scroll-transparent flex w-full gap-4 overflow-x-auto overflow-y-hidden">
+<div class="scroll-transparent flex w-full gap-4 overflow-x-auto overflow-y-hidden pb-8">
   {#each updates as serverResult}
     {@const server = serverResult.server}
     {@const resultPromise = serverResult.updates}
