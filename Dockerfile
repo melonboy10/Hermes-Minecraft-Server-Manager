@@ -7,7 +7,7 @@ RUN apk add --no-cache bash
 SHELL [ "/bin/bash", "-c" ]
 
 ### NODE SETUP
-RUN apk add --no-cache nodejs npm
+RUN apk add --no-cache nodejs npm zip
 
 ### WEBSITE SETUP
 RUN npm install -g pnpm
