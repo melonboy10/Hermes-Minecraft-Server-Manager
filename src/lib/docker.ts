@@ -142,7 +142,7 @@ export async function getContainerPlayerCount(serverID: string): ContainerResult
 export async function getContainerData(serverID: string): ContainerResult<ContainerData> {
   if (containerDoesntExists(serverID)) return err(new CustomError('Server not found'));
 
-  const psResult = await ResultAsync.fromPromise(execCompose('ps', [], { cwd: getServerFolder(serverID), commandOptions: ['-a', '--format', 'json'] }), (e) => CustomError.from(e, 'Failed to read container data'));
+  const psResult = await ResultAsync.fromPromise(execCompose('ps', ['-a', '--format', 'json'], { cwd: getServerFolder(serverID) }), (e) => CustomError.from(e, 'Failed to read container data'));
   if (psResult.isErr()) return err(psResult.error);
 
   const containerJSONResult = Result.fromThrowable(
@@ -151,22 +151,21 @@ export async function getContainerData(serverID: string): ContainerResult<Contai
         psResult.value.out
           .trim()
           .split('\n')
-          .filter((s) => s.trim() != '')
-          .join('')
+          .filter((s) => s.trim() != '')[0]
       ),
     (e) => CustomError.from(e, 'Failed to parse container data')
   )();
   if (containerJSONResult.isErr()) return err(containerJSONResult.error);
-  const containerJSON: ContainerData[] = containerJSONResult.value;
+  const containerJSON: ContainerData = containerJSONResult.value;
 
-  if (containerJSON.length === 0) return err(new CustomError('Failed to get any containers from ps command'));
-  if (!containerJSON[0]) return err(new CustomError('Parsed one undefined container from ps command'));
+  // if (containerJSON.length === 0) return err(CustomError.from(JSON.stringify(containerJSON), 'Failed to get any containers from ps command'));
+  // if (!containerJSON[0]) return err(CustomError.from(JSON.stringify(containerJSON), 'Parsed one undefined container from ps command'));
 
   // Check if container is paused
   const paused = containerHasPauseFile(serverID);
-  if (paused && containerJSON[0].State == ContainerState.Running) containerJSON[0].State = ContainerState.Paused;
+  if (paused && containerJSON.State == ContainerState.Running) containerJSON.State = ContainerState.Paused;
 
-  return ok(containerJSON[0]);
+  return ok(containerJSON);
 }
 
 export async function getContainerRunningStatus(serverID: string): ContainerResult<boolean> {
